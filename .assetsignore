@@ -1,0 +1,6 @@
+app.py
+wrangler.jsonc
+.assetsignore
+.claude
+.git
+.wrangler
