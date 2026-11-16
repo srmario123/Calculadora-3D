@@ -175,9 +175,9 @@ $('pdf').onclick = () => {
   const nro = `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
   const venc = new Date(d.getTime() + 15 * 864e5);
   const fechaVenc = `${p(venc.getDate())}-${p(venc.getMonth()+1)}-${venc.getFullYear()}`;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text('COTIZACIÓN', 15, 22);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.text('kubrix.3d', 15, 22);
+  doc.setFontSize(11); doc.text('COTIZACIÓN', 15, 29);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  doc.text('Servicio de impresión 3D', 15, 29);
   doc.text(`N° ${nro}`, 195, 18, { align: 'right' });
   doc.text(`Fecha: ${fecha}`, 195, 24, { align: 'right' });
   doc.text(`Válida hasta: ${fechaVenc}`, 195, 30, { align: 'right' });
@@ -192,8 +192,8 @@ $('pdf').onclick = () => {
   doc.setFont('helvetica', 'normal');
   const filas = [
     [`Material ${c.mat}`, `${c.gramos} g`, c.costoMat * f],
-    ['Tiempo de impresión', `${c.horas} h`, c.costoTiempo * f],
-    ['Desgaste de equipo (depreciación)', `${c.horas} h`, c.costoDep * f]
+    // La depreciación no se muestra al cliente: va incluida en el tiempo de impresión
+    ['Tiempo de impresión', `${c.horas} h`, (c.costoTiempo + c.costoDep) * f]
   ];
   filas.forEach(r => {
     y += 10; doc.text(r[0], 18, y); doc.text(r[1], 130, y, { align: 'right' }); doc.text(clp(r[2]), 192, y, { align: 'right' });
