@@ -11,21 +11,19 @@
   }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--txt); }
-  header { padding:20px 16px 0; max-width:1200px; margin:auto; }
+  header { padding:20px 16px 0; max-width:1000px; margin:auto; }
   h1 { margin:0 0 4px; font-size:1.6rem; }
   header p { margin:0; color:var(--mut); }
-  .wrap { display:grid; grid-template-columns:260px 1fr; gap:16px; max-width:1200px; margin:16px auto; padding:0 16px; }
-  @media (max-width:800px) { .wrap { grid-template-columns:1fr; } }
+  .wrap { max-width:1000px; margin:16px auto; padding:0 16px; display:grid; gap:16px; }
   .card { background:var(--card); border:1px solid var(--bd); border-radius:10px; padding:16px; box-shadow:0 2px 4px rgba(0,0,0,.05); }
   h2 { font-size:1.05rem; margin:0 0 12px; }
   label { display:block; font-size:.85rem; color:var(--mut); margin:10px 0 3px; }
-  input[type=number], input[type=text] { width:100%; padding:8px; border:1px solid var(--bd); border-radius:6px; background:var(--bg); color:var(--txt); font-size:1rem; }
-  input[type=range] { width:100%; }
-  .cols { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-  @media (max-width:1000px) { .cols { grid-template-columns:1fr; } }
+  input, select { width:100%; padding:8px; border:1px solid var(--bd); border-radius:6px; background:var(--bg); color:var(--txt); font-size:1rem; }
+  .cols { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  @media (max-width:700px) { .cols { grid-template-columns:1fr; } }
   button { background:var(--pri); color:#fff; border:0; border-radius:6px; padding:10px 16px; font-size:1rem; cursor:pointer; margin-top:16px; }
   button.sec { background:transparent; color:var(--pri); border:1px solid var(--pri); margin-right:8px; }
-  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
+  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
   @media (max-width:600px) { .metrics { grid-template-columns:1fr; } }
   .metric small { color:var(--mut); font-weight:600; font-size:.75rem; }
   .metric div { font-size:1.6rem; font-weight:700; }
@@ -40,108 +38,77 @@
 </head>
 <body>
 <header>
-  <h1>🚀 Calculadora 3D Pro (CLP / USD)</h1>
-  <p>Control de costos, margen de utilidad y registro histórico</p>
+  <h1>🚀 Calculadora 3D (CLP / USD)</h1>
+  <p>Precio = material por gramos + tiempo de impresión</p>
 </header>
 
 <div class="wrap">
-  <aside class="card">
-    <h2>⚙️ Configuración Base</h2>
-    <label>Valor Dólar hoy (CLP)</label>
-    <input type="number" id="dolar" value="950" step="1">
-    <label>Costo kWh Chile (CLP)</label>
-    <input type="number" id="kwh" value="150">
-    <label>Margen de Utilidad: <b id="margenLbl">100</b>%</label>
-    <input type="range" id="margen" min="0" max="300" value="100">
-    <p style="color:var(--mut);font-size:.8rem;margin-top:14px">Energía y depreciación se calculan según horas reales de impresión.</p>
-  </aside>
-
-  <main>
-    <form id="form" class="card">
-      <div class="cols">
-        <div>
-          <h2>📦 Material y Tiempo</h2>
-          <label>Nombre del Trabajo</label>
-          <input type="text" id="nombre" placeholder="Ej: Engranaje Prototipo">
-          <label>Precio Bobina 1kg (CLP)</label>
-          <input type="number" id="bobina" value="22000" step="500">
-          <label>Gramos usados (Slicer)</label>
-          <input type="number" id="gramos" value="0" step="1" min="0">
-          <label>Horas de impresión</label>
-          <input type="number" id="horas" value="0" step="0.1" min="0">
-        </div>
-        <div>
-          <h2>🛠️ Máquina y Diseño</h2>
-          <label>Consumo Máquina (Watts)</label>
-          <input type="number" id="watts" value="120" step="5">
-          <label>Precio Compra Máquina (CLP)</label>
-          <input type="number" id="maquina" value="350000" step="1000">
-          <label>Vida Útil Máquina (Horas)</label>
-          <input type="number" id="vida" value="5000" step="500" min="1">
-          <label>Mano de Obra / Diseño (CLP)</label>
-          <input type="number" id="obra" value="0" step="1000">
-        </div>
-        <div>
-          <h2>➕ Costos Extras</h2>
-          <label>Monto Extra (CLP)</label>
-          <input type="number" id="extra" value="0" step="100">
-          <label>Descripción del extra</label>
-          <input type="text" id="descExtra" placeholder="Caja de envío, lijas, pintura...">
-        </div>
+  <form id="form" class="card">
+    <div class="cols">
+      <div>
+        <h2>📦 Trabajo</h2>
+        <label>Nombre del Trabajo</label>
+        <input type="text" id="nombre" placeholder="Ej: Engranaje Prototipo">
+        <label>Tipo de material</label>
+        <select id="material"></select>
+        <label>Precio del material (CLP por kg)</label>
+        <input type="number" id="precioKg" step="500" min="0">
+        <label>Gramos usados (Slicer)</label>
+        <input type="number" id="gramos" value="0" step="1" min="0">
+        <label>Horas de impresión</label>
+        <input type="number" id="horas" value="0" step="0.1" min="0">
       </div>
-      <button type="submit">Calcular y Guardar en Registro</button>
-      <div id="msg"></div>
-    </form>
-
-    <div id="resultado" class="hidden">
-      <div class="metrics">
-        <div class="card metric"><small>PRECIO VENTA (CLP)</small><div id="rVenta"></div></div>
-        <div class="card metric"><small>COSTO TOTAL (CLP)</small><div id="rCosto"></div></div>
-        <div class="card metric"><small>COSTO TOTAL (USD)</small><div id="rUsd"></div></div>
+      <div>
+        <h2>⚙️ Tarifas</h2>
+        <label>Cobro por hora de impresión (CLP)</label>
+        <input type="number" id="tarifaHora" value="1500" step="100" min="0">
+        <label>Valor Dólar hoy (CLP)</label>
+        <input type="number" id="dolar" value="950" step="1" min="1">
+        <p style="color:var(--mut);font-size:.8rem;margin-top:14px">Los precios por kg y la tarifa por hora son ejemplos: ajústalos a los tuyos.</p>
       </div>
-      <details class="card desg"><summary>Ver desglose de costos detallado</summary><div id="rDesg"></div></details>
     </div>
+    <button type="submit">Calcular y Guardar en Registro</button>
+    <div id="msg"></div>
+  </form>
 
-    <section class="card" style="margin-top:16px">
-      <h2>📋 Historial de Registros</h2>
-      <div id="vacio" style="color:var(--mut)">Aún no hay cálculos registrados.</div>
-      <div class="scroll"><table id="tabla" class="hidden"><thead></thead><tbody></tbody></table></div>
-      <div id="acciones" class="hidden">
-        <button class="sec" id="csv" type="button">📥 Descargar CSV</button>
-        <button class="sec" id="limpiar" type="button">Limpiar Historial</button>
-      </div>
-    </section>
-  </main>
+  <div id="resultado" class="hidden">
+    <div class="metrics">
+      <div class="card metric"><small>PRECIO TOTAL (CLP)</small><div id="rTotal"></div></div>
+      <div class="card metric"><small>PRECIO TOTAL (USD)</small><div id="rUsd"></div></div>
+      <div class="card metric"><small>PRECIO POR GRAMO (CLP)</small><div id="rGramo"></div></div>
+    </div>
+    <details class="card desg" open><summary>Desglose</summary><div id="rDesg"></div></details>
+  </div>
+
+  <section class="card">
+    <h2>📋 Historial de Registros</h2>
+    <div id="vacio" style="color:var(--mut)">Aún no hay cálculos registrados.</div>
+    <div class="scroll"><table id="tabla" class="hidden"><thead></thead><tbody></tbody></table></div>
+    <div id="acciones" class="hidden">
+      <button class="sec" id="csv" type="button">📥 Descargar CSV</button>
+      <button class="sec" id="limpiar" type="button">Limpiar Historial</button>
+    </div>
+  </section>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 const num = id => parseFloat($(id).value) || 0;
 const clp = n => '$' + Math.round(n).toLocaleString('es-CL');
-const COLS = ["Fecha","Proyecto","Costo Material","Costo Energía","Depreciación","Mano Obra","Extras","Descripción Extras","Costo Total CLP","Costo Total USD","Precio Venta CLP"];
-const KEY = 'calc3d_historico';
+// Precios de ejemplo por kg: ajustar a los del proveedor
+const MATERIALES = { "PLA": 22000, "PETG": 25000, "ABS": 24000, "TPU": 32000, "Resina": 35000 };
+const COLS = ["Fecha","Proyecto","Material","Gramos","Horas","Costo Material","Costo Tiempo","Total CLP","Total USD"];
+const KEY = 'calc3d_historico_v2';
 let hist = [];
 try { hist = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist)); } catch(e) {} };
 
-$('margen').oninput = () => $('margenLbl').textContent = $('margen').value;
-
-function calcular() {
-  const gramos = num('gramos'), horas = num('horas');
-  const valorGramo = num('bobina') / 1000;
-  const material = valorGramo * gramos;
-  const energia = (num('watts') / 1000) * num('kwh') * horas;
-  const deprec = (num('maquina') / (num('vida') || 1)) * horas;
-  const obra = num('obra'), extra = num('extra');
-  const costo = material + energia + deprec + obra + extra;
-  const venta = costo * (1 + num('margen') / 100);
-  const usd = costo / (num('dolar') || 1);
-  return { gramos, horas, valorGramo, material, energia, deprec, obra, extra, costo, venta, usd };
-}
+$('material').innerHTML = Object.keys(MATERIALES).map(m => `<option>${m}</option>`).join('');
+$('material').onchange = () => $('precioKg').value = MATERIALES[$('material').value];
+$('material').onchange();
 
 function render() {
-  const t = $('tabla');
-  const has = hist.length > 0;
+  const t = $('tabla'), has = hist.length > 0;
   $('vacio').classList.toggle('hidden', has);
   t.classList.toggle('hidden', !has);
   $('acciones').classList.toggle('hidden', !has);
@@ -153,35 +120,27 @@ function render() {
 
 $('form').onsubmit = e => {
   e.preventDefault();
-  const msg = $('msg');
-  const nombre = $('nombre').value.trim();
+  const msg = $('msg'), nombre = $('nombre').value.trim();
   if (!nombre) { msg.className = 'err'; msg.textContent = '⚠️ Debes asignar un nombre al proyecto.'; return; }
-  const c = calcular();
+  const gramos = num('gramos'), horas = num('horas'), mat = $('material').value;
+  const porGramo = num('precioKg') / 1000;
+  const costoMat = porGramo * gramos;
+  const costoTiempo = num('tarifaHora') * horas;
+  const total = costoMat + costoTiempo;
+  const usd = total / (num('dolar') || 1);
   $('resultado').classList.remove('hidden');
-  $('rVenta').textContent = clp(c.venta);
-  $('rCosto').textContent = clp(c.costo);
-  $('rUsd').textContent = '$' + c.usd.toFixed(2);
-  const extraDesc = $('descExtra').value.trim();
+  $('rTotal').textContent = clp(total);
+  $('rUsd').textContent = '$' + usd.toFixed(2);
+  $('rGramo').textContent = gramos > 0 ? clp(total / gramos) : '—';
   $('rDesg').innerHTML =
-    `<p><b>Filamento (${c.gramos}g):</b> ${clp(c.material)}</p>` +
-    `<p><b>Energía (${c.horas}h):</b> ${clp(c.energia)}</p>` +
-    `<p><b>Depreciación máquina:</b> ${clp(c.deprec)}</p>` +
-    `<p><b>Mano de obra:</b> ${clp(c.obra)}</p>` +
-    `<p><b>Extras (${extraDesc.replace(/[<>&]/g,'')}):</b> ${clp(c.extra)}</p>` +
-    `<p><b>Costo por gramo:</b> $${c.valorGramo.toFixed(2)}</p>`;
+    `<p><b>${mat} (${gramos} g × $${porGramo.toFixed(2)}/g):</b> ${clp(costoMat)}</p>` +
+    `<p><b>Tiempo (${horas} h × ${clp(num('tarifaHora'))}/h):</b> ${clp(costoTiempo)}</p>`;
   const d = new Date(), p = n => String(n).padStart(2, '0');
   hist.push({
     "Fecha": `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,
-    "Proyecto": nombre,
-    "Costo Material": +c.material.toFixed(2),
-    "Costo Energía": +c.energia.toFixed(2),
-    "Depreciación": +c.deprec.toFixed(2),
-    "Mano Obra": c.obra,
-    "Extras": c.extra,
-    "Descripción Extras": extraDesc,
-    "Costo Total CLP": Math.round(c.costo),
-    "Costo Total USD": +c.usd.toFixed(2),
-    "Precio Venta CLP": Math.round(c.venta)
+    "Proyecto": nombre, "Material": mat, "Gramos": gramos, "Horas": horas,
+    "Costo Material": Math.round(costoMat), "Costo Tiempo": Math.round(costoTiempo),
+    "Total CLP": Math.round(total), "Total USD": +usd.toFixed(2)
   });
   save(); render();
   msg.className = 'ok'; msg.textContent = '✅ Datos guardados en el registro.';
