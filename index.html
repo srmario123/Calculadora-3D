@@ -39,7 +39,7 @@
 <body>
 <header>
   <h1>🚀 Calculadora 3D (CLP / USD)</h1>
-  <p>Precio = material por gramos + tiempo de impresión</p>
+  <p>Cotización = material + tiempo + depreciación, más ganancia</p>
 </header>
 
 <div class="wrap">
@@ -47,6 +47,8 @@
     <div class="cols">
       <div>
         <h2>📦 Trabajo</h2>
+        <label>Cliente (para la cotización)</label>
+        <input type="text" id="cliente" placeholder="Ej: Juan Pérez">
         <label>Nombre del Trabajo</label>
         <input type="text" id="nombre" placeholder="Ej: Engranaje Prototipo">
         <label>Tipo de material</label>
@@ -62,19 +64,24 @@
         <h2>⚙️ Tarifas</h2>
         <label>Cobro por hora de impresión (CLP)</label>
         <input type="number" id="tarifaHora" value="1500" step="100" min="0">
+        <label>Depreciación de equipo (CLP por hora)</label>
+        <input type="number" id="depHora" value="300" step="50" min="0">
+        <label>Porcentaje de ganancia: <b id="margenLbl">30</b>%</label>
+        <input type="range" id="margen" min="0" max="300" value="30">
         <label>Valor Dólar hoy (CLP)</label>
         <input type="number" id="dolar" value="950" step="1" min="1">
-        <p style="color:var(--mut);font-size:.8rem;margin-top:14px">Los precios por kg y la tarifa por hora son ejemplos: ajústalos a los tuyos.</p>
+        <p style="color:var(--mut);font-size:.8rem;margin-top:14px">Precios por kg, tarifa y depreciación por hora son ejemplos: ajústalos a los tuyos.</p>
       </div>
     </div>
     <button type="submit">Calcular y Guardar en Registro</button>
+    <button type="button" id="pdf" class="sec" style="margin-left:8px">📄 Descargar cotización PDF</button>
     <div id="msg"></div>
   </form>
 
   <div id="resultado" class="hidden">
     <div class="metrics">
-      <div class="card metric"><small>PRECIO TOTAL (CLP)</small><div id="rTotal"></div></div>
-      <div class="card metric"><small>PRECIO TOTAL (USD)</small><div id="rUsd"></div></div>
+      <div class="card metric"><small>PRECIO COTIZADO (CLP)</small><div id="rTotal"></div></div>
+      <div class="card metric"><small>PRECIO COTIZADO (USD)</small><div id="rUsd"></div></div>
       <div class="card metric"><small>PRECIO POR GRAMO (CLP)</small><div id="rGramo"></div></div>
     </div>
     <details class="card desg" open><summary>Desglose</summary><div id="rDesg"></div></details>
@@ -91,14 +98,15 @@
   </section>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const num = id => parseFloat($(id).value) || 0;
 const clp = n => '$' + Math.round(n).toLocaleString('es-CL');
 // Precios de ejemplo por kg: ajustar a los del proveedor
 const MATERIALES = { "PLA": 22000, "PETG": 25000, "ABS": 24000, "TPU": 32000, "Resina": 35000 };
-const COLS = ["Fecha","Proyecto","Material","Gramos","Horas","Costo Material","Costo Tiempo","Total CLP","Total USD"];
-const KEY = 'calc3d_historico_v2';
+const COLS = ["Fecha","Proyecto","Cliente","Material","Gramos","Horas","Costo Material","Costo Tiempo","Depreciación","Ganancia","Total CLP","Total USD"];
+const KEY = 'calc3d_historico_v3';
 let hist = [];
 try { hist = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist)); } catch(e) {} };
@@ -106,6 +114,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist)); } ca
 $('material').innerHTML = Object.keys(MATERIALES).map(m => `<option>${m}</option>`).join('');
 $('material').onchange = () => $('precioKg').value = MATERIALES[$('material').value];
 $('material').onchange();
+$('margen').oninput = () => $('margenLbl').textContent = $('margen').value;
 
 function render() {
   const t = $('tabla'), has = hist.length > 0;
@@ -118,32 +127,86 @@ function render() {
   ).join('');
 }
 
+function calcular() {
+  const gramos = num('gramos'), horas = num('horas'), mat = $('material').value;
+  const porGramo = num('precioKg') / 1000, m = num('margen');
+  const costoMat = porGramo * gramos, costoTiempo = num('tarifaHora') * horas, costoDep = num('depHora') * horas;
+  const costo = costoMat + costoTiempo + costoDep;
+  const ganancia = costo * m / 100, total = costo + ganancia;
+  const usd = total / (num('dolar') || 1);
+  return { nombre: $('nombre').value.trim(), cliente: $('cliente').value.trim(), gramos, horas, mat, porGramo, m,
+           tarifa: num('tarifaHora'), depHora: num('depHora'), costoMat, costoTiempo, costoDep, costo, ganancia, total, usd };
+}
+
 $('form').onsubmit = e => {
   e.preventDefault();
-  const msg = $('msg'), nombre = $('nombre').value.trim();
-  if (!nombre) { msg.className = 'err'; msg.textContent = '⚠️ Debes asignar un nombre al proyecto.'; return; }
-  const gramos = num('gramos'), horas = num('horas'), mat = $('material').value;
-  const porGramo = num('precioKg') / 1000;
-  const costoMat = porGramo * gramos;
-  const costoTiempo = num('tarifaHora') * horas;
-  const total = costoMat + costoTiempo;
-  const usd = total / (num('dolar') || 1);
+  const msg = $('msg'), c = calcular();
+  if (!c.nombre) { msg.className = 'err'; msg.textContent = '⚠️ Debes asignar un nombre al proyecto.'; return; }
   $('resultado').classList.remove('hidden');
-  $('rTotal').textContent = clp(total);
-  $('rUsd').textContent = '$' + usd.toFixed(2);
-  $('rGramo').textContent = gramos > 0 ? clp(total / gramos) : '—';
+  $('rTotal').textContent = clp(c.total);
+  $('rUsd').textContent = '$' + c.usd.toFixed(2);
+  $('rGramo').textContent = c.gramos > 0 ? clp(c.total / c.gramos) : '—';
   $('rDesg').innerHTML =
-    `<p><b>${mat} (${gramos} g × $${porGramo.toFixed(2)}/g):</b> ${clp(costoMat)}</p>` +
-    `<p><b>Tiempo (${horas} h × ${clp(num('tarifaHora'))}/h):</b> ${clp(costoTiempo)}</p>`;
+    `<p><b>${c.mat} (${c.gramos} g × $${c.porGramo.toFixed(2)}/g):</b> ${clp(c.costoMat)}</p>` +
+    `<p><b>Tiempo (${c.horas} h × ${clp(c.tarifa)}/h):</b> ${clp(c.costoTiempo)}</p>` +
+    `<p><b>Depreciación (${c.horas} h × ${clp(c.depHora)}/h):</b> ${clp(c.costoDep)}</p>` +
+    `<p><b>Costo total:</b> ${clp(c.costo)}</p>` +
+    `<p><b>Ganancia (${c.m}%):</b> ${clp(c.ganancia)}</p>`;
   const d = new Date(), p = n => String(n).padStart(2, '0');
   hist.push({
     "Fecha": `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,
-    "Proyecto": nombre, "Material": mat, "Gramos": gramos, "Horas": horas,
-    "Costo Material": Math.round(costoMat), "Costo Tiempo": Math.round(costoTiempo),
-    "Total CLP": Math.round(total), "Total USD": +usd.toFixed(2)
+    "Proyecto": c.nombre, "Cliente": c.cliente, "Material": c.mat, "Gramos": c.gramos, "Horas": c.horas,
+    "Costo Material": Math.round(c.costoMat), "Costo Tiempo": Math.round(c.costoTiempo),
+    "Depreciación": Math.round(c.costoDep), "Ganancia": Math.round(c.ganancia),
+    "Total CLP": Math.round(c.total), "Total USD": +c.usd.toFixed(2)
   });
   save(); render();
   msg.className = 'ok'; msg.textContent = '✅ Datos guardados en el registro.';
+};
+
+// Cotización PDF: la ganancia va repartida en cada línea; el cliente ve solo precios finales
+$('pdf').onclick = () => {
+  const msg = $('msg'), c = calcular();
+  if (!c.nombre) { msg.className = 'err'; msg.textContent = '⚠️ Asigna un nombre al trabajo para cotizar.'; return; }
+  if (!window.jspdf) { msg.className = 'err'; msg.textContent = '⚠️ No cargó la librería PDF (requiere internet).'; return; }
+  const f = 1 + c.m / 100, doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const fecha = `${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`;
+  const nro = `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  const venc = new Date(d.getTime() + 15 * 864e5);
+  const fechaVenc = `${p(venc.getDate())}-${p(venc.getMonth()+1)}-${venc.getFullYear()}`;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text('COTIZACIÓN', 15, 22);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  doc.text('Servicio de impresión 3D', 15, 29);
+  doc.text(`N° ${nro}`, 195, 18, { align: 'right' });
+  doc.text(`Fecha: ${fecha}`, 195, 24, { align: 'right' });
+  doc.text(`Válida hasta: ${fechaVenc}`, 195, 30, { align: 'right' });
+  doc.setDrawColor(150); doc.line(15, 35, 195, 35);
+  doc.setFont('helvetica', 'bold'); doc.text('Cliente:', 15, 44);
+  doc.setFont('helvetica', 'normal'); doc.text(c.cliente || '-', 35, 44);
+  doc.setFont('helvetica', 'bold'); doc.text('Trabajo:', 15, 51);
+  doc.setFont('helvetica', 'normal'); doc.text(c.nombre, 35, 51);
+  let y = 66;
+  doc.setFont('helvetica', 'bold'); doc.setFillColor(235, 238, 242); doc.rect(15, y - 6, 180, 9, 'F');
+  doc.text('Detalle', 18, y); doc.text('Cantidad', 130, y, { align: 'right' }); doc.text('Valor', 192, y, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  const filas = [
+    [`Material ${c.mat}`, `${c.gramos} g`, c.costoMat * f],
+    ['Tiempo de impresión', `${c.horas} h`, c.costoTiempo * f],
+    ['Desgaste de equipo (depreciación)', `${c.horas} h`, c.costoDep * f]
+  ];
+  filas.forEach(r => {
+    y += 10; doc.text(r[0], 18, y); doc.text(r[1], 130, y, { align: 'right' }); doc.text(clp(r[2]), 192, y, { align: 'right' });
+    doc.setDrawColor(220); doc.line(15, y + 3, 195, y + 3);
+  });
+  y += 14; doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text('TOTAL (CLP)', 18, y); doc.text(clp(c.total), 192, y, { align: 'right' });
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  y += 8; doc.text(`Referencia en USD: $${c.usd.toFixed(2)} (dólar a ${clp(num('dolar'))})`, 18, y);
+  y += 16; doc.setFontSize(9); doc.setTextColor(100);
+  doc.text('Valores en pesos chilenos. Cotización válida por 15 días desde su emisión.', 15, y);
+  doc.save(`cotizacion_${nro}.pdf`);
+  msg.className = 'ok'; msg.textContent = '✅ Cotización PDF generada.';
 };
 
 $('csv').onclick = () => {
